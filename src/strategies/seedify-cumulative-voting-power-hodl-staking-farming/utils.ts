@@ -71,3 +71,15 @@ export const createPromise: any = (
     { blockTag }
   );
 };
+
+export const createCallToReadUsersData: any = (
+  addresses: any,
+  contractAddress: any,
+  functionToCall: any
+) => {
+  return addresses.map((address: any) => [
+    contractAddress,
+    functionToCall,
+    [address]
+  ]);
+};
