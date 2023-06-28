@@ -3,9 +3,10 @@ import { Multicaller } from '../../utils';
 import { strategy as erc20BalanceOfStrategy } from '../erc20-balance-of';
 import {
   createCallToReadUsersData,
-  createStakingPromises,
+  createCallsToReadUsersData,
   toDecimals,
   calculateBep20InLPForUser,
+  sfundStakingAbi,
   getStakingBalanceOf
 } from './utils';
 import { farmingAbi, bep20Abi } from './utils';
@@ -72,23 +73,31 @@ export async function strategy(
     farming.length
   );
 
-  //////// return user's SFUND balance in staking contract (IDOLocking) ////////
-  let sfundStaking: any = createStakingPromises(options.sfundStakingAddresses);
-  let legacySfundStaking: any = createStakingPromises(
-    options.legacySfundStakingAddresses
+  const staking = await multicall(
+    network,
+    provider,
+    sfundStakingAbi,
+    [
+      ...createCallsToReadUsersData(
+        addresses,
+        options.sfundStakingAddresses,
+        'userDeposits'
+      ),
+      ...createCallsToReadUsersData(
+        addresses,
+        options.legacySfundStakingAddresses,
+        'userDeposits'
+      )
+    ],
+    { blockTag }
   );
-
-  const result = await Promise.all([
-    score,
-    ...sfundStaking,
-    ...legacySfundStaking
-  ]);
-
-  score = result[0];
-  sfundStaking = result.slice(1, 1 + options.sfundStakingAddresses.length);
-  legacySfundStaking = result.slice(
-    2,
-    2 + options.legacySfundStakingAddresses.length
+  const sfundStaking = staking.slice(
+    0,
+    addresses.length * options.sfundStakingAddresses.length
+  );
+  const legacySfundStaking = staking.slice(
+    addresses.length * options.sfundStakingAddresses.length,
+    staking.length
   );
 
   const erc20Multi = new Multicaller(network, provider, bep20Abi, {
@@ -134,13 +143,13 @@ export async function strategy(
           sfundBnbTotalSupply,
           sfundInSfundBnbPool
         ) +
-        ////// SFUND from SFNTS-SFUND farming contract //////
+        ////// SFUND from SNFTS-SFUND farming contract //////
         calculateBep20InLPForUser(
           snftsSfundFarming[userIndex],
           snftsSfundTotalSupply,
           sfundInSnftsSfundPool
         ) +
-        ////// SFUND from staking contracts (current & legacy) //////
+        //// SFUND from staking contracts (current & legacy) //////
         getStakingBalanceOf(sfundStaking, userIndex) +
         getStakingBalanceOf(legacySfundStaking, userIndex)
     ])
