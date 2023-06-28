@@ -1,5 +1,4 @@
 import { multicall } from '../../utils';
-import { Multicaller } from '../../utils';
 import { strategy as erc20BalanceOfStrategy } from '../erc20-balance-of';
 import {
   createCallToReadUsersData,
@@ -100,33 +99,23 @@ export async function strategy(
     staking.length
   );
 
-  const erc20Multi = new Multicaller(network, provider, bep20Abi, {
-    blockTag
-  });
-
-  erc20Multi.call(
-    'sfundBnbTotalSupply',
-    options.lpAddress_SFUND_BNB,
-    'totalSupply'
+  const erc20Res = await multicall(
+    network,
+    provider,
+    bep20Abi,
+    [
+      [options.lpAddress_SFUND_BNB, 'totalSupply'],
+      [options.sfundAddress, 'balanceOf', [options.lpAddress_SFUND_BNB]],
+      [options.lpAddress_SNFTS_SFUND, 'totalSupply'],
+      [options.sfundAddress, 'balanceOf', [options.lpAddress_SNFTS_SFUND]]
+    ],
+    { blockTag }
   );
-  erc20Multi.call('sfundInSfundBnbPool', options.sfundAddress, 'balanceOf', [
-    options.lpAddress_SFUND_BNB
-  ]);
-  erc20Multi.call(
-    'snftsSfundTotalSupply',
-    options.lpAddress_SNFTS_SFUND,
-    'totalSupply'
-  );
-  erc20Multi.call('sfundInSnftsSfundPool', options.sfundAddress, 'balanceOf', [
-    options.lpAddress_SNFTS_SFUND
-  ]);
 
-  const erc20Result = await erc20Multi.execute();
-
-  const sfundBnbTotalSupply = toDecimals(erc20Result.sfundBnbTotalSupply);
-  const sfundInSfundBnbPool = toDecimals(erc20Result.sfundInSfundBnbPool);
-  const snftsSfundTotalSupply = toDecimals(erc20Result.snftsSfundTotalSupply);
-  const sfundInSnftsSfundPool = toDecimals(erc20Result.sfundInSnftsSfundPool);
+  const sfundBnbTotalSupply = toDecimals(erc20Res[0]);
+  const sfundInSfundBnbPool = toDecimals(erc20Res[1]);
+  const snftsSfundTotalSupply = toDecimals(erc20Res[2]);
+  const sfundInSnftsSfundPool = toDecimals(erc20Res[3]);
 
   return Object.fromEntries(
     Object.entries(score).map((sfundBalance: any, userIndex) => [
