@@ -19,7 +19,7 @@ export const getStakingBalanceOf = (stakedBalances: any, userIndex: any) => {
     stakingContractIndex < stakedBalances.length;
     stakingContractIndex++
   ) {
-    balance = toDecimals(stakedBalances[stakingContractIndex][userIndex]['0']);
+    balance = toDecimals(stakedBalances[userIndex]['0']);
     sum += balance;
   }
   return sum;
