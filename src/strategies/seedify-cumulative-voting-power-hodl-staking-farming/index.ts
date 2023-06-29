@@ -21,6 +21,13 @@ export async function strategy(
   options,
   snapshot
 ): Promise<Record<string, number>> {
+  if (options.sfundStakingAddresses.length > 10) {
+    throw new Error('More than 10 staking addresses');
+  }
+  if (options.legacySfundStakingAddresses.length > 10) {
+    throw new Error('More than 10 LEGACY staking addresses');
+  }
+
   const blockTag = typeof snapshot === 'number' ? snapshot : 'latest';
 
   // required to use: erc20BalanceOfStrategy
